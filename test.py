@@ -9,3 +9,8 @@ if True:
 
 else:
     print('good')
+
+
+if __name__ == "__main__":
+
+    print('Then what are you doing')
