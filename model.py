@@ -50,5 +50,5 @@ class LayerNormalization(nn.Module):
         std = x.std(dim=-1,keepdim = True)
         return self.alpha*(x-mean)/(std+self.eps) +self.beta
     
-    
+# e
 
