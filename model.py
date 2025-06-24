@@ -72,7 +72,6 @@ class MultiHeadAttentionBlock(nn.Module):
         self.w_q = nn.Linear(d_model, d_model) # wq
         self.w_k = nn.Linear(d_model, d_model) # wk
         self.w_v = nn.Linear(d_model, d_model) # wv
-
         self.w_o = nn.Linear(d_model, d_model) # wo
         self.dropout = nn.Dropout(dropout)
 
@@ -91,7 +90,7 @@ class MultiHeadAttentionBlock(nn.Module):
         return (attention_scores @ value), attention_scores
 
 
-    def forward(self, q,k,v,d,mask):
+    def forward(self, q,k,v,mask):
 
         query = self.w_q(q) # (batch,seq_len,d_model) --> (batch,seq_len, d_model )
         key = self.w_k(k)
@@ -121,7 +120,32 @@ class ResidualConnection(nn.Module):
         return x + self.dropout(sublayer(self.norm(x)))
     
 
-    
+ # Now we will create encoder block
+class EncoderBlock(nn.Module):
+
+    def __init__(self, self_attention_block: MultiHeadAttentionBlock,feed_forward_block:FeedForwardBlock, dropout: float):
+        super().__init__()
+        self.self_attantion_block = self_attention_block
+        self.feed_forward_block = feed_forward_block
+        self.residual_connections = nn.ModuleList([ResidualConnection(dropout=dropout) for _ in range(2)])
+
+    def forward(self,x, scr_mask):
+        x = self.residual_connections[0](x, lambda x: self.self_attention_block(x,x,x,scr_mask)) 
+        x = self.residual_connection[1](x,self.feed_forward_block)
+        return x
 
 
-        
+
+class Encoder( nn.Module):
+    def __init__(self,layers:nn.ModuleList):
+        super().__init__()
+        self.layers = layers
+        self.norm = LayerNormalization()
+
+    def forward(self,x,mask):
+
+        for layer in self.layers:
+            x = layer(x,mask)
+        return self.norm(x)
+
+
