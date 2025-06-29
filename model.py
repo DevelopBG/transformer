@@ -4,7 +4,7 @@ import math
 
 class InputEmbeddings(nn.Module):
     def __init__(self, d_model, vocab_size):
-        super.__init__()
+        super().__init__()
         self.d_model = d_model # size of embedding vector  
         self.vocab_size = vocab_size
         self.embedding = nn.Embedding(num_embeddings=self.vocab_size,embedding_dim=self.d_model)
@@ -13,7 +13,7 @@ class InputEmbeddings(nn.Module):
     
 class PositionalEmbedding(nn.Module):
     def __init__(self,d_model:int,seq_len:int,dropout:float)->None:
-        super.__init__()
+        super().__init__()
         self.d_model = d_model
         self.seq_len = seq_len
         self.dropout = nn.Dropout(dropout)
@@ -21,7 +21,7 @@ class PositionalEmbedding(nn.Module):
         #creating a matix of shape (seq_len,d_model)
         pe = torch.zeros(seq_len,d_model)
         #creating a voctor of shape (seq_len,1)
-        position = torch.arange(seq_len,dype = torch.float).unsqueeze(1)
+        position = torch.arange(seq_len,dtype = torch.float).unsqueeze(1)
         denominator = torch.exp(torch.arange(0,d_model,2).float()*(-math.log(10000)/d_model))
         #applying sine and cosine 
         pe[:,0::2] = torch.sin(position*denominator)
@@ -33,14 +33,14 @@ class PositionalEmbedding(nn.Module):
         self.register_buffer('pe',pe) # making it in registered and saved.
 
     def forward(self,x):
-        x = x + (self.pe[:,:x.shape[1],:]).required_grad(False)
+        x = x + (self.pe[:,:x.shape[1],:]).requires_grad_(False)
         return self.dropout(x)
     
 
 # layer norm 
 class LayerNormalization(nn.Module):
     def __init__(self,eps:float=10**-6):
-        super.__init__()
+        super().__init__()
         self.eps = eps
         self.alpha = nn.Parameter(torch.ones(1)) # multiplied
         self.beta = nn.Parameter(torch.zeros(1)) # added
@@ -104,7 +104,7 @@ class MultiHeadAttentionBlock(nn.Module):
         x, self.attention_score = MultiHeadAttentionBlock.attention(query, key, value,mask, dropout=self.dropout)
         
         # ( batch_size, h, seq_len, d_k) --> (batch_size, seq_len,h, d_k) --> (batch_size, seq_len, d_model)
-        x =  x.transpose(1,2).contiguous().view(x.shapep[0],-1,self.h*self.d_k)
+        x =  x.transpose(1,2).contiguous().view(x.shape[0],-1,self.h*self.d_k)
 
         return self.w_o(x)
     
@@ -125,13 +125,13 @@ class EncoderBlock(nn.Module):
 
     def __init__(self, self_attention_block: MultiHeadAttentionBlock,feed_forward_block:FeedForwardBlock, dropout: float):
         super().__init__()
-        self.self_attantion_block = self_attention_block
+        self.self_attention_block = self_attention_block
         self.feed_forward_block = feed_forward_block
         self.residual_connections = nn.ModuleList([ResidualConnection(dropout=dropout) for _ in range(2)])
 
     def forward(self,x, scr_mask):
         x = self.residual_connections[0](x, lambda x: self.self_attention_block(x,x,x,scr_mask)) 
-        x = self.residual_connection[1](x,self.feed_forward_block)
+        x = self.residual_connections[1](x,self.feed_forward_block)
         return x
 
 
@@ -217,15 +217,15 @@ def build_transformer(src_vocab_size:int, tgt_vocab_size:int, src_seq_len:int, t
     tgt_embed = InputEmbeddings(d_model,tgt_vocab_size)
 
     # create the positional encoding layer
-    src_pos = PositionalEmbedding(d_model,src_seq_len)
-    tgt_pos = PositionalEmbedding(d_model,tgt_seq_len)
+    src_pos = PositionalEmbedding(d_model,src_seq_len,dropout)
+    tgt_pos = PositionalEmbedding(d_model,tgt_seq_len,dropout)
 
     # creating encoder 
     encoder_blocks = []
     for _ in range(N):
         encoder_self_attention_block = MultiHeadAttentionBlock(d_model,h,dropout)
         feed_forward_block = FeedForwardBlock(d_model,d_ff,dropout)
-        encoder_block = EncoderBlock(encoder_self_attention_block,feed_forward_block)
+        encoder_block = EncoderBlock(encoder_self_attention_block,feed_forward_block,dropout)
         encoder_blocks.append(encoder_block)
     decoder_blocks = []
     for _ in range(N):
