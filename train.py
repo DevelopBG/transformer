@@ -30,7 +30,7 @@ def greedy_decode(model, source, source_mask, tokenizer_src, tokenizer_tgt, max_
     #initialize the decoder input with the sos token
     decoder_input = torch.empty(1,1).fill_(sos_idx).type_as(source).to(device)
     while True:
-        if decoder_input.size(0) == max_len:
+        if decoder_input.size(1) == max_len:
             break
 
         # Build mask for the target (decoder input)
@@ -179,10 +179,12 @@ def train_model(config):
     loss_fn = nn.CrossEntropyLoss(ignore_index=tokenizer_src.token_to_id('[PAD]'), label_smoothing=0.1) # label smoothing for less over fitting
 
     for epoch in range(initial_epoch,config['num_epochs']):
+
+        model.train()
         batch_iteration = tqdm(train_dataloader, desc= f'Processing epoch {epoch:02d}')
+
         for batch in batch_iteration:
             
-            model.train()
             encoder_input = batch['encoder_input'].to(device) # (B, seq_len)
             decoder_input = batch['decoder_input'].to(device) # ( B, seq_len)
             encoder_mask = batch['encoder_mask'].to(device) # (B, 1,1,seq_len)
@@ -209,8 +211,9 @@ def train_model(config):
             optimizer.step()
             optimizer.zero_grad()
 
-            run_validation(model,val_dataloader,tokenizer_src,tokenizer_tgt, config['seq_len'],device, lambda msg: batch_iteration.write(msg),global_step, writer,num_examples=2)
             global_step += 1
+            
+        run_validation(model,val_dataloader,tokenizer_src,tokenizer_tgt, config['seq_len'],device, lambda msg: batch_iteration.write(msg),global_step, writer,num_examples=2)
 
         # saving the model
         model_filename = get_weights_file_path(config, f'{epoch:02d}')
